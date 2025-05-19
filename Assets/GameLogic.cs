@@ -84,19 +84,22 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         board[3, 2] = 2;
         board[3, 3] = 2;
 
-        board[0, 0] = 1024;
-        board[0, 1] = 1024;
+        //board[0, 0] = 1024;
+        // board[0, 1] = 1024;
 
         for (int i = 0; i < board.GetLength(0); i++)
         {
             for (int j = 0; j < board.GetLength(1); j++)
             {
                 SetSprite(objectboard[i,j], board[i,j]);
+                Debug.Log("object :" + objectboard[i, j]);
+                Debug.Log("Sprite :" + board[i, j]);
             }    
            
-        }*/
+        }
+        */
         #endregion
-        
+
         int row, col, num;
         HashSet<string> set = new HashSet<string>();
         for (int i = 0; i < 2; i++)
@@ -117,6 +120,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
                 i--;
             }
         }
+        
     }
 
     private int GenNumber()
@@ -130,7 +134,6 @@ public class GameLogic : MonoBehaviour, IDataPresistance
 
     private void SetSprite(GameObject tile, int val)
     {
-        //Debug.Log(tile);
         if (checking) return;
         SpriteRenderer sr = tile.transform.GetComponent<SpriteRenderer>();
 
@@ -358,7 +361,8 @@ public class GameLogic : MonoBehaviour, IDataPresistance
 
     public void Shift(int dir) 
     {
-        setUndoBoard();
+        if(!checking)
+            SetUndoBoard();
 
         switch (dir) 
         {
@@ -436,7 +440,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
                     if (board[j,i] == board[j - 1, i])
                     {
                         board[j - 1, i] = board[j, i] * 2;
-                        if (board[j - 1, i] == 2048)
+                        if (!checking && board[j - 1, i] == 2048)
                             reached2048 = true;
 
                         UpdateScore(board[j, i]);
@@ -458,7 +462,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
                     if (j+1 < board.GetLength(1) && board[i, j] != 0 && board[i, j] == board[i, j + 1])
                     {
                         board[i, j + 1] = board[i, j] * 2;
-                        if (board[i, j + 1] == 2048)
+                        if (!checking &&  board[i, j + 1] == 2048)
                             reached2048 = true;
                         UpdateScore(board[i, j]);
                         SetSprite(objectboard[i, j+1], board[i, j] * 2);
@@ -479,7 +483,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
                     if (board[j, i] == board[j + 1, i])
                     {
                         board[j + 1, i] = board[j, i] * 2;
-                        if (board[j+1,i] == 2048)
+                        if (!checking && board[j + 1, i] == 2048)
                             reached2048 = true;
 
                         UpdateScore(board[j, i]);
@@ -502,7 +506,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
                     {
                         board[i, j - 1] = board[i, j] * 2;
 
-                        if (board[i, j - 1] == 2048)
+                        if (!checking && board[i, j - 1] == 2048)
                             reached2048 = true;
 
                         UpdateScore(board[i,j]);
@@ -529,6 +533,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
             if (set.Count == 16)
             {
                 CheckAvailableMoves();
+                canGenerate = false;
                 break;
             }
 
@@ -617,11 +622,16 @@ public class GameLogic : MonoBehaviour, IDataPresistance
             tmpOverlayText.enabled = false;
             overlay.GetComponent<SpriteRenderer>().color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
         }
+
+        if(checking)
+            checking = false;
+
         score = 0;
         scoreTmp.SetText("Score: 0");
         EmptyBoard();
+        Debug.Log("Calling init");
         InitBoard();
-        setUndoBoard();
+        SetUndoBoard();
     }
 
     public void ExitGame()
@@ -733,7 +743,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
     }
 
 
-    private void setUndoBoard()
+    private void SetUndoBoard()
     {
         for (int i = 0; i < board.GetLength(0); i++)
         {
