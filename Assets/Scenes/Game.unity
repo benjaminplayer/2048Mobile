@@ -3389,6 +3389,8 @@ MonoBehaviour:
   checking: 0
   lost: 0
   canGenerate: 1
+  isShifting: 0
+  moveDuration: 0.07
 --- !u!4 &1593551714
 Transform:
   m_ObjectHideFlags: 0

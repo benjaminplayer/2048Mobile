@@ -64,25 +64,21 @@ public class SwipeDetection : MonoBehaviour
         if(logic.GetLostStatus())
             { return; }
 
-        if (Vector2.Dot(Vector2.up, direction) > directionTreshold)
+        if (Vector2.Dot(Vector2.up, direction) > directionTreshold) // .Dot -> skalarni produkt
         {
-            //Debug.Log("Swipe up");
-            logic.Shift(0);
+            logic.TryShift(0);
         }
         else if (Vector2.Dot(Vector2.down, direction) > directionTreshold)
         {
-            //Debug.Log("Swipe down");
-            logic.Shift(2);
+            logic.TryShift(2);
         }
         else if (Vector2.Dot(Vector2.left, direction) > directionTreshold)
         {
-            //Debug.Log("Swipe left");
-            logic.Shift(1);
+            logic.TryShift(1);
         }
         else if (Vector2.Dot(Vector2.right, direction) > directionTreshold)
         {
-            //Debug.Log("Swipe right");
-            logic.Shift(3);
+            logic.TryShift(3);
         }
         
     }
