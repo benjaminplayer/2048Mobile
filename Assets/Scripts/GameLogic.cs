@@ -9,8 +9,6 @@ using UnityEngine.Windows;
 public class GameLogic : MonoBehaviour, IDataPresistance
 {
 
-    //TODO: Fix obj sometimes dissapearing
-
     [SerializeField] private GameObject overlay;
     [SerializeField] private TextMeshProUGUI tmpOverlayText;
     private GameObject[,] objectboard = new GameObject[4, 4];
@@ -23,6 +21,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
     [SerializeField] private int affectedRows = 0, ar, hiScore;
     [SerializeField] private bool reached2048 = false, checking = false, lost = false, canGenerate = true;
     private Color overlayColor;
+
     private void Awake()
     {
         Application.targetFrameRate = 60;
@@ -32,13 +31,31 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         overlayColor = overlay.GetComponent<SpriteRenderer>().color;
         overlay.GetComponent<SpriteRenderer>().color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
         FillboardFromRows();
-        InitBoard();
     }
 
     private void Start()
     {
         DataPresistanceManager.Instance.LoadGame();
         hiScoreTMP.text = "High Score: " + hiScore;
+
+        if (board == null)
+        {
+            board = new int[4, 4];
+            undoBoard = new int[4, 4];
+            InitBoard();
+        }
+
+        else if (undoBoard == null)
+        { 
+            undoBoard = new int[4, 4];
+            SetUndoBoard();
+            LoadBoard();
+        }
+        else
+        {
+            LoadBoard();
+        }
+
     }
 
     private void FillboardFromRows()
@@ -68,7 +85,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         EmptySprites();
         #region DebugValues
         /*board[0, 0] = 32;
-        board[0, 1] = 2;
+        board[0, 3] = 2;
         board[0, 2] = 4;
         board[0, 3] = 2;
         board[1, 0] = 2;
@@ -96,8 +113,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
                 Debug.Log("Sprite :" + board[i, j]);
             }    
            
-        }
-        */
+        }*/
         #endregion
 
         int row, col, num;
@@ -405,7 +421,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
 
         if (lost)
         {
-            Debug.Log("Lost :(");
+            //Debug.Log("Lost :(");
             OnLoss();
         }
 
@@ -617,7 +633,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         SetHighScore();
         if (lost || reached2048)
         {
-            Debug.Log("If lost");
+            //Debug.Log("If lost");
             lost = false;
             tmpOverlayText.enabled = false;
             overlay.GetComponent<SpriteRenderer>().color = new Color(overlayColor.r, overlayColor.g, overlayColor.b, 0);
@@ -629,7 +645,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         score = 0;
         scoreTmp.SetText("Score: 0");
         EmptyBoard();
-        Debug.Log("Calling init");
+        //Debug.Log("Calling init");
         InitBoard();
         SetUndoBoard();
     }
@@ -640,6 +656,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         lost = false;
         tmpOverlayText.enabled = false;
         SetHighScore();
+        DataPresistanceManager.Instance.SaveGame(); //poklice metodo save game v classu DataPresistenceManager
         SceneManager.LoadScene(0);
     }
 
@@ -665,7 +682,7 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         if (affectedRows == 0)
         {
             lost = true;
-            Debug.Log("Lost set");
+            //Debug.Log("Lost set");
             return;
         }
 
@@ -703,12 +720,18 @@ public class GameLogic : MonoBehaviour, IDataPresistance
     #region Interface Methods
     public void LoadData(GameData data)
     {
-        this.hiScore = data.score;
+        this.hiScore = data.hiScore;
+        this.score = data.score;
+        this.board = ConvertTo2DArray(data.boardFlat);
+        this.undoBoard = ConvertTo2DArray(data.undoBoardFlat);
     }
 
     public void SaveData(ref GameData data) 
     {
-        data.score = this.hiScore;
+        data.hiScore = this.hiScore;
+        data.score = this.score;
+        data.boardFlat = Flatten2DArray(board);
+        data.undoBoardFlat = Flatten2DArray(undoBoard);
     }
 
     #endregion
@@ -720,7 +743,6 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         if (hiScore < score)
         { 
             hiScore = score;
-            DataPresistanceManager.Instance.SaveGame(); //poklice metodo save game v classu DataPresistenceManager
         }
 
         hiScoreTMP.text = "High Score: " + hiScore;
@@ -755,4 +777,67 @@ public class GameLogic : MonoBehaviour, IDataPresistance
         undoScore = score;
     }
 
+    private void LoadBoard()
+    {
+        scoreTmp.SetText("Score: "+score);
+        for (int i = 0; i < board.GetLength(0); i++)
+        {
+            for (int j = 0; j < board.GetLength(1); j++)
+            {
+                SetSprite(objectboard[i, j], board[i, j]);
+            }
+        }
+    }
+
+    #region Application Quit Handler
+    private void OnApplicationQuit()
+    {
+        DataPresistanceManager.Instance.SaveGame(); // on quit save board, da on next start lahko upor nadaljuje od prejsne igre
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if (pause) // ce app gre v background, save game data -> redundand za OnApplicationQuit, ki ne dela all the time
+            DataPresistanceManager.Instance.SaveGame();
+    }
+    #endregion
+
+    #region Array Transform methods
+    private int[] Flatten2DArray(int[,] ar)
+    {
+        int[] array = new int[ar.GetLength(0) * ar.GetLength(1)];
+
+        int idx = 0;
+
+        for (int i = 0; i < ar.GetLength(0); i++)
+        {
+            for (int j = 0; j < ar.GetLength(1); j++)
+            { 
+                array[idx] = ar[i,j];
+                idx++;
+            }
+        }
+        return array;
+    }
+
+    private int[,] ConvertTo2DArray(int[] array)
+    {
+        int[,] newArray = new int[objectboard.GetLength(0), objectboard.GetLength(1)];
+
+        if (array == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < newArray.GetLength(0); i++)
+        {
+            for (int j = 0; j < newArray.GetLength(1); j++)
+            {
+                newArray[i, j] = array[i * newArray.GetLength(1) + j];
+            }
+        }
+
+        return newArray;
+    }
+    #endregion
 }
